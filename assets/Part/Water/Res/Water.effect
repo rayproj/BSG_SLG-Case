@@ -1,0 +1,186 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: water-vs:vert
+      frag: water-fs:frag
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties:
+        depthTex:         { value: grey }
+        foamTex:          { value: grey, editor: { displayName: 效果贴图 } }
+        normalTex:        { value: normal, editor: { displayName: 波纹法线贴图 } }
+        texTiling:        { value: [1, 1], target: texParams.xy, editor: { displayName: 两种贴图UV缩放 } }
+        deepColor:        { value: [1, 1, 1, 1], editor: { type: color, displayName: 深水区颜色 } }
+        shallowColor:     { value: [1, 1, 1, 1], editor: { type: color, displayName: 浅水区颜色 } }
+        waveParams:       { value: [0, 0, 0, 0], editor: { displayName: 水浪偏移速度12 } }
+        noramlScale:      { value: 1, target: texParams.z, editor: { displayName: 法线强度 } }
+        waterSpecular:    { value: 1, target: texParams.w, editor: { displayName: 高光强度 } }
+        waterSmoothness:  { value: 1, target: lightDir.w, editor: { displayName: 高光衰减, slide: true, range: [0.99, 1.0], step: 0.0001 } }
+        mainLightDir:     { vlaue: [0, 0, 0], target: lightDir.xyz, editor: { displayName: 光照方向 } }
+        foamColor:        { value: [1, 1, 1, 1], editor: { type: color, displayName: 泡沫颜色 } }
+        foamDepth:        { value: 0.5, target: foamParams.x, editor: { displayName: 泡沫范围 } }
+        foamFactor:       { value: 0.5, target: foamParams.y, editor: { displayName: 泡沫衰减 } }
+        foamOffset:       { value: [0, 0, 1, 1], editor: { displayName: xy泡沫速度z泡沫强度w泡沫扰动 } }
+        detailColor:      { value: [1, 1, 1, 1], editor: { type: color, displayName: 细节颜色 } }
+        deatilScale:      { value: 1, target: foamParams.w, editor: { displayName: 细节大小 } }
+        waterWave:        { value: 1, target: foamParams.z, editor: { displayName: 细节扰动强度 } }
+        alphaWidth:       { value: 0, target: alphaParams.w, editor: { displayName: 边缘透明宽度 } }
+        frequency:        { value: 1, target: alphaParams.x, editor: { displayName: 波动频率 } }
+        amplitude:        { value: 1, target: alphaParams.y, editor: { displayName: 波动振幅 } }
+        speed:            { value: 1, target: alphaParams.z, editor: { displayName: 波动速度 } }
+}%
+
+CCProgram shared-ubos %{
+  uniform Constants {
+    vec4 texParams;
+    vec4 alphaParams;
+  };
+}%
+
+CCProgram water-vs %{
+  precision highp float;
+
+  #include <shared-ubos>
+
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+  #include <legacy/fog-vs>
+
+  out vec2 v_uv;
+  out vec3 v_worldPos;
+  out mediump vec3 v_worldNormal;
+  out mediump vec3 v_worldTangent;
+  out mediump vec3 v_worldBitangent;
+  out vec4 v_screenPos;
+
+  vec4 vert () {
+    StandardVertInput In;
+    CCVertInput(In);
+
+    mat4 matWorld, matWorldIT;
+    CCGetWorldMatrixFull(matWorld, matWorldIT);
+
+    float time = cc_time.x * alphaParams.z;
+    float waveValue = sin(time + In.position.x * alphaParams.x) * alphaParams.y;
+    In.position.xyz = vec3(In.position.x, In.position.y + waveValue, In.position.z);
+
+    vec4 worldPos = matWorld * In.position;
+
+    v_uv = a_texCoord;
+    v_worldPos = worldPos.xyz;
+    v_worldNormal = normalize((matWorldIT * vec4(In.normal, 0.0)).xyz);
+    v_worldTangent = normalize((matWorld * vec4(In.tangent.xyz, 0.0)).xyz);
+    v_worldBitangent = cross(v_worldNormal, v_worldTangent) * In.tangent.w;
+    v_screenPos = cc_matProj * cc_matView * worldPos;
+
+    return v_screenPos;
+  }
+}%
+
+CCProgram water-fs %{
+  precision highp float;
+
+  #include <shared-ubos>
+
+  // #include <legacy/output-standard>
+  #include <legacy/fog-fs>
+  #include <builtin/uniforms/cc-global>
+  #include <packing>
+
+  uniform sampler2D depthTex;
+  uniform sampler2D foamTex;
+  uniform sampler2D normalTex;
+
+  uniform Constans {
+    vec4 shallowColor;
+    vec4 deepColor;
+    vec4 waveParams;
+    vec4 lightDir;
+    vec4 foamColor;
+    vec4 foamOffset;
+    vec4 foamParams;
+    vec4 detailColor;
+  };
+
+  in vec2 v_uv;
+  in vec3 v_worldPos;
+  in mediump vec3 v_worldNormal;
+  in mediump vec3 v_worldTangent;
+  in mediump vec3 v_worldBitangent;
+  in vec4 v_screenPos;
+
+  vec3 UnpackNormal(vec4 packedNormal) {
+    return packedNormal.xyz * 2.0 - 1.0;
+  }
+
+  vec3 BlendNormals(vec3 n1, vec3 n2) {
+    return normalize(vec3(n1.xy + n2.xy, n1.z * n2.z));
+  }
+
+  vec4 GetZBufferParams() {
+    float near = cc_nearFar.x;
+    float far = cc_nearFar.y;
+    float x = 1.0 - far / near;
+    float y = far / near;
+    float z = x / far;
+    float w = y / far;
+    return vec4(x, y, z, w);
+  }
+
+  float LinearEyeDepth(float depth, vec4 zBufferParam) {
+    return 1.0 / (zBufferParam.z * depth + zBufferParam.w);
+  }
+
+  vec4 frag () {
+    vec3 worldViewDir = normalize(cc_cameraPos.xyz - v_worldPos);
+    vec3 worldLightDir = lightDir.xyz;
+
+    vec2 uv = v_worldPos.xz;
+    vec2 panner1 = cc_time.x * waveParams.xy + uv * texParams.y;
+    vec2 panner2 = cc_time.x * waveParams.zw + uv * texParams.y;
+    vec3 worldNormal = BlendNormals(UnpackNormal(texture(normalTex, panner1)), UnpackNormal(texture(normalTex, panner2)));
+
+    vec4 water = texture(foamTex, v_uv);
+    vec2 foamUV = uv * texParams.x;
+    foamUV = foamUV + (worldNormal.xy * foamOffset.w);
+    vec4 foam = texture(foamTex, foamUV);
+    vec4 foam2 = texture(foamTex, cc_time.x * foamOffset.xy + foamUV);
+    vec2 detailUV = uv * foamParams.w + (worldNormal.xy * foamParams.z);
+
+    worldNormal = mix(vec3(0, 0, 1), worldNormal, texParams.z);
+    worldNormal = normalize(worldNormal.x * v_worldTangent + worldNormal.y * v_worldBitangent + worldNormal.z * v_worldNormal);
+
+    float NdotV = clamp(dot(worldNormal, worldViewDir), 0.0, 1.0);
+    vec3 worldHalfDir = normalize(worldLightDir + worldViewDir);
+
+    // vec3 specular = cc_mainLitColor.rgb * texParams.w * pow(max(0.0, dot(worldNormal, worldHalfDir)), lightDir.w * 256.0);
+    vec3 specular = cc_mainLitColor.rgb * texParams.w * smoothstep(lightDir.w, 1.0, dot(worldNormal, worldHalfDir));
+    vec4 detail = texture(foamTex, detailUV).b * detailColor;
+
+    vec3 screenUV = v_screenPos.xyz / v_screenPos.w * 0.5 + 0.5;
+    float depthsss = unpackRGBAToDepth(texture(depthTex, screenUV.xy));
+    float linearEyeDepth = LinearEyeDepth(depthsss, GetZBufferParams());
+    float eyeDepthSubScreenPos = abs( linearEyeDepth - v_screenPos.w );
+    float depthMask = 1.0 - eyeDepthSubScreenPos + foamParams.x;
+
+    vec4 diffuse = mix(deepColor, shallowColor, water.r);
+    
+    float foamOut = clamp((foam.g + foam2.g) * depthMask * water.g - foamParams.y, 0.0, 1.0);
+    diffuse = mix(diffuse, foamColor * foamOffset.z, foamOut);
+
+    float alpha = clamp(eyeDepthSubScreenPos - alphaParams.w, 0.0, 1.0);
+
+    vec4 col = vec4(diffuse.rgb * NdotV * 0.5 + specular + diffuse.rgb * detail.rgb * 0.5, alpha);
+    return col;
+  }
+}%

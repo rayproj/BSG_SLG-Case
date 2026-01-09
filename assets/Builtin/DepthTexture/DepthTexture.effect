@@ -1,0 +1,42 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: depth-vs:vert
+      frag: depth-fs:frag
+}%
+
+CCProgram depth-vs %{
+  precision highp float;
+
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+
+  out vec4 v_screenPos;
+
+  vec4 vert () {
+    StandardVertInput In;
+    CCVertInput(In);
+
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+
+    v_screenPos = cc_matProj * (cc_matView * matWorld) * In.position;
+    return v_screenPos;
+  }
+}%
+
+CCProgram depth-fs %{
+  precision highp float;
+  #include <packing>
+
+  in vec4 v_screenPos;
+
+  vec4 frag () {
+    float depth = v_screenPos.z / v_screenPos.w * 0.5 + 0.5;
+    vec4 col = packDepthToRGBA(depth);
+    return col;
+  }
+}%

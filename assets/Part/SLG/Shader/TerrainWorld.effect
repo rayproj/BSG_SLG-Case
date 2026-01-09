@@ -1,0 +1,127 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      properties: &props
+        terrainTexture: { value: grey }
+        decalTexture: { value: grey }
+        tilingOffset:   { value: [1, 1, 0, 0] }
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }
+        terrainColor:   { value: [1, 1, 1, 1], editor: { type: color } }
+        cameraDir:      { value: [0, 1, 0], target: cameraDirAndDecalRange.xyz }
+        decalRange:     { value: 3.0, target: cameraDirAndDecalRange.w }
+        colorScale:     { value: [1, 1, 1], target: colorScaleAndCutoff.xyz }
+        alphaThreshold: { value: 0.5, target: colorScaleAndCutoff.w, editor: { parent: USE_ALPHA_TEST } }
+}%
+
+CCProgram unlit-vs %{
+  precision highp float;
+  
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+  #include <legacy/fog-vs>
+
+  #if USE_VERTEX_COLOR
+    in lowp vec4 a_color;
+    out lowp vec4 v_color;
+  #endif
+
+  out vec2 v_uv;
+  uniform TexCoords {
+    vec4 tilingOffset;
+  };
+
+  out vec3 v_worldPos;
+  out vec3 v_worldNormal;
+
+  vec4 vert () {
+    StandardVertInput In;
+    CCVertInput(In);
+
+    mat4 matWorld, matWorldIT;
+    CCGetWorldMatrixFull(matWorld, matWorldIT);
+
+    v_uv = a_texCoord * tilingOffset.xy + tilingOffset.zw;
+
+    #if USE_VERTEX_COLOR
+      v_color = a_color;
+    #endif
+
+    vec4 worldPos = matWorld * In.position;
+
+    v_worldPos = worldPos.xyz;
+    v_worldNormal = normalize((matWorldIT * vec4(In.normal, 0.0)).xyz);
+
+    CC_TRANSFER_FOG(worldPos);
+    return cc_matProj * cc_matView * worldPos;
+  }
+}%
+
+CCProgram unlit-fs %{
+  precision highp float;
+
+  // #include <legacy/output-standard>
+  #include <legacy/fog-fs>
+  #include <builtin/uniforms/cc-global>
+
+  #if USE_ALPHA_TEST
+    #pragma define-meta ALPHA_TEST_CHANNEL options([a, r, g, b])
+  #endif
+
+  in vec2 v_uv;
+  uniform sampler2D terrainTexture;
+  uniform sampler2D decalTexture;
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 terrainColor;
+    vec4 colorScaleAndCutoff;
+    vec4 cameraDirAndDecalRange;
+  };
+
+  #if USE_VERTEX_COLOR
+    in lowp vec4 v_color;
+  #endif
+
+  in vec3 v_worldPos;
+  in vec3 v_worldNormal;
+
+  vec4 frag () {
+    // 贴花
+    vec4 groundColor = mainColor;
+    float decal = texture(decalTexture, v_uv * 2.0).a;
+    float disY =  (v_worldPos.y - cc_cameraPos.y) / cameraDirAndDecalRange.y;
+    vec3 cameraPosGround = cc_cameraPos.xyz + normalize(cameraDirAndDecalRange.xyz) * disY;
+    vec3 rectForward = normalize(vec3(cameraDirAndDecalRange.x, 0.0, cameraDirAndDecalRange.z));
+    vec3 rectRight = normalize(vec3(rectForward.z, 0.0, -rectForward.x));
+    vec3 dir = v_worldPos - cameraPosGround;
+    float range = cameraDirAndDecalRange.w;
+    decal *= 1.0 - smoothstep(0.0, range * 2.0, abs(dot(dir, rectForward)));
+    decal *= 1.0 - smoothstep(0.0, range, abs(dot(dir, rectRight)));
+    decal *= 0.2;
+    groundColor.rgb += decal;
+
+    vec4 color = groundColor;
+    float detail1 = texture(terrainTexture, v_uv).r;
+    float detail2 = texture(terrainTexture, v_uv * 0.6 + vec2(0.2)).g;
+    color.rgb = mix(color.rgb, terrainColor.rgb, detail1);
+    color.rgb = mix(color.rgb, groundColor.rgb, detail2);
+
+    color.rgb *= colorScaleAndCutoff.xyz;
+
+    #if USE_ALPHA_TEST
+      if (color.ALPHA_TEST_CHANNEL < colorScaleAndCutoff.w) discard;
+    #endif
+
+    #if USE_VERTEX_COLOR
+      color *= v_color;
+    #endif
+
+    CC_APPLY_FOG(color);
+    return color;
+  }
+}%

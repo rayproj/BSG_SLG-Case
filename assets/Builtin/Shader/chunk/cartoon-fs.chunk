@@ -1,0 +1,86 @@
+precision highp float;
+// #include <legacy/output-standard>
+#include <legacy/fog-fs>
+#include <chunk/cartoon-common>
+
+#if USE_ALPHA_TEST
+  #pragma define-meta ALPHA_TEST_CHANNEL options([a, r, g, b])
+#endif
+
+in vec2 v_uv;
+uniform sampler2D mainTexture;
+
+#if IS_GROUND
+  in vec2 v_uvGround;
+  uniform sampler2D groundTexture;
+#endif
+
+uniform Constant {
+  vec4 mainColor;
+  vec4 specColor;
+  vec4 colorScaleAndCutoff;
+  vec2 specParams;
+};
+
+#if USE_VERTEX_COLOR
+  in lowp vec4 v_color;
+#endif
+
+// #if USE_BLINK
+  #if USE_INSTANCING
+    in vec4 vi_blinkColor;
+    in float vi_colorScale;
+    in float vi_opacityScale;
+  #endif
+// #endif
+
+in vec3 v_worldPos;
+in vec3 v_worldNormal;
+
+struct CarToonSurface {
+  float a;
+  vec3 albedo;
+  vec3 color;
+};
+
+void surf(out CarToonSurface s) {
+  vec3 color;
+  vec4 texColor = texture(mainTexture, v_uv);
+
+  #if IS_GROUND
+    vec4 groundColor = texture(groundTexture, v_uvGround);
+    texColor.rgb *= 1.0 - groundColor.a;
+  #endif
+
+  #if USE_ALPHA_TEST
+    if (texColor.ALPHA_TEST_CHANNEL < colorScaleAndCutoff.w) discard;
+  #endif
+
+  #if USE_VERTEX_COLOR
+    texColor *= v_color;
+  #endif
+
+  vec3 worldNormal = v_worldNormal;
+  vec3 worldLightDir = normalize(-cc_mainLitDir.xyz);
+
+  float iaScale = 1.0;
+  #if USE_INSTANCING
+    iaScale += vi_colorScale;
+  #endif
+  vec3 albedo = texColor.rgb * mainColor.rgb * colorScaleAndCutoff.xyz * iaScale;
+  color.rgb = getCartoonColor(albedo, v_worldNormal, worldLightDir);
+
+  // 高光
+  #if USE_SPECULAR
+    vec3 worldViewDir = normalize(cc_cameraPos.xyz - v_worldPos);
+    vec3 worldHalfDir = normalize(worldLightDir + worldViewDir);
+    float NdotH = max(0.0, dot(worldNormal, worldHalfDir));
+    float spec = pow(NdotH, specParams.x * 128.0);
+    vec3 specular = getMainLitColor() * specColor.rgb * spec;
+    color.rgb += specular;
+  #endif
+
+  s.color = color;
+  s.a = texColor.a;
+  s.albedo = albedo;
+}

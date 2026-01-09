@@ -1,0 +1,153 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      properties: &props
+        mainTexture:    { value: grey }
+        tilingOffset:   { value: [1, 1, 0, 0] }
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }
+        colorScale:     { value: [1, 1, 1], target: colorScaleAndCutoff.xyz }
+        alphaThreshold: { value: 0.5, target: colorScaleAndCutoff.w, editor: { parent: USE_ALPHA_TEST } }
+  - name: transparent
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: *props
+}%
+
+CCProgram unlit-vs %{
+  precision highp float;
+  
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+  #include <legacy/fog-vs>
+
+  #if USE_VERTEX_COLOR
+    in lowp vec4 a_color;
+    out lowp vec4 v_color;
+  #endif
+
+  out vec2 v_uv;
+  out float v_oriV;
+  uniform TexCoords {
+    vec4 tilingOffset;
+  };
+
+  #if USE_INSTANCING
+    in vec4 ai_color;
+    in vec2 ai_duration;
+    out vec3 vi_color;
+    out vec2 vi_duration;
+  #endif
+
+  out vec3 v_worldPos;
+  out vec3 v_worldNormal;
+
+  vec4 vert () {
+    StandardVertInput In;
+    CCVertInput(In);
+
+    mat4 matWorld, matWorldIT;
+    CCGetWorldMatrixFull(matWorld, matWorldIT);
+
+    float zScale = 1.0;
+    #if USE_INSTANCING
+      zScale = ai_color.a;
+      vi_color = ai_color.rgb;
+      vi_duration = ai_duration;
+    #endif
+
+    vec2 nodeScale = vec2(1.0, zScale);
+    v_uv = a_texCoord * tilingOffset.xy * nodeScale + tilingOffset.zw;
+    v_oriV = a_texCoord.y;
+
+    #if USE_VERTEX_COLOR
+      v_color = a_color;
+    #endif
+
+    vec4 worldPos = matWorld * In.position;
+
+    v_worldPos = worldPos.xyz;
+    v_worldNormal = normalize((matWorldIT * vec4(In.normal, 0.0)).xyz);
+
+    CC_TRANSFER_FOG(worldPos);
+    return cc_matProj * cc_matView * worldPos;
+  }
+}%
+
+CCProgram unlit-fs %{
+  precision highp float;
+
+  // #include <legacy/output-standard>
+  #include <legacy/fog-fs>
+  #include <builtin/uniforms/cc-global>
+
+  #if USE_ALPHA_TEST
+    #pragma define-meta ALPHA_TEST_CHANNEL options([a, r, g, b])
+  #endif
+
+  in vec2 v_uv;
+  in float v_oriV;
+  uniform sampler2D mainTexture;
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 colorScaleAndCutoff;
+  };
+
+  #if USE_VERTEX_COLOR
+    in lowp vec4 v_color;
+  #endif
+
+  in vec3 v_worldPos;
+  in vec3 v_worldNormal;
+
+  #if USE_INSTANCING
+    in vec3 vi_color;
+    in vec2 vi_duration;
+  #endif
+
+  vec4 frag () {
+    vec2 uv = v_uv + vec2(0, cc_time.x);
+    vec4 texColor = texture(mainTexture, uv);
+    vec3 color;
+    float rate;
+    #if USE_INSTANCING
+      color = vi_color;
+      float startTime = vi_duration.x;
+      float endTime = vi_duration.y;
+      rate = (cc_time.x - startTime) / ((endTime - startTime) + 0.0001);
+    #else
+      color = mainColor.rgb;
+      rate = 0.0;
+    #endif
+    texColor.rgb *= color;
+    texColor.rgb *= colorScaleAndCutoff.xyz;
+
+    texColor.a *= mix(0.3, 1.0,smoothstep(rate, rate + 0.0001, 1.0 - v_oriV));
+
+    #if USE_ALPHA_TEST
+      if (texColor.ALPHA_TEST_CHANNEL < colorScaleAndCutoff.w) discard;
+    #endif
+
+    #if USE_VERTEX_COLOR
+      texColor *= v_color;
+    #endif
+
+    CC_APPLY_FOG(texColor);
+    return texColor;
+  }
+}%

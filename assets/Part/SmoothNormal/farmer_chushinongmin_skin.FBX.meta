@@ -1,0 +1,187 @@
+{
+  "ver": "2.3.4",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8",
+  "files": [
+    "__original-animation-0.cconb"
+  ],
+  "subMetas": {
+    "364c7": {
+      "importer": "gltf-mesh",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@364c7",
+      "displayName": "",
+      "id": "364c7",
+      "name": "chushinongmin.mesh",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.1.0",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "73b7f": {
+      "importer": "gltf-animation",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@73b7f",
+      "displayName": "",
+      "id": "73b7f",
+      "name": "Take 001.animation",
+      "userData": {
+        "gltfIndex": 0,
+        "wrapMode": 2,
+        "sample": 30,
+        "span": {
+          "from": 0,
+          "to": 3.3333332538604736
+        },
+        "events": []
+      },
+      "ver": "1.0.16",
+      "imported": true,
+      "files": [
+        ".cconb"
+      ],
+      "subMetas": {}
+    },
+    "438fe": {
+      "importer": "gltf-skeleton",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@438fe",
+      "displayName": "",
+      "id": "438fe",
+      "name": "UnnamedSkeleton.skeleton",
+      "userData": {
+        "gltfIndex": 0,
+        "jointsLength": 29
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a0f2a": {
+      "importer": "gltf-embeded-image",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@a0f2a",
+      "displayName": "",
+      "id": "a0f2a",
+      "name": "贴图 #16.image",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".json",
+        ".png"
+      ],
+      "subMetas": {}
+    },
+    "3dbff": {
+      "importer": "texture",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@3dbff",
+      "displayName": "",
+      "id": "3dbff",
+      "name": "贴图 #16.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "9bdad83b-c43f-48c7-9797-fec165e953c8@a0f2a"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "5227b": {
+      "importer": "gltf-material",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@5227b",
+      "displayName": "",
+      "id": "5227b",
+      "name": "Material #14.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b5720": {
+      "importer": "gltf-scene",
+      "uuid": "9bdad83b-c43f-48c7-9797-fec165e953c8@b5720",
+      "displayName": "",
+      "id": "b5720",
+      "name": "farmer_chushinongmin_skin.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.12",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "name": "贴图 #16",
+        "uri": "9bdad83b-c43f-48c7-9797-fec165e953c8@a0f2a"
+      }
+    ],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "animationImportSettings": [
+      {
+        "name": "Take 001",
+        "duration": 3.3333332538604736,
+        "fps": 30,
+        "splits": [
+          {
+            "name": "Take 001",
+            "from": 0,
+            "to": 3.3333332538604736,
+            "wrapMode": 2
+          }
+        ]
+      }
+    ],
+    "redirect": "9bdad83b-c43f-48c7-9797-fec165e953c8@b5720",
+    "assetFinder": {
+      "meshes": [
+        "9bdad83b-c43f-48c7-9797-fec165e953c8@364c7"
+      ],
+      "skeletons": [
+        "9bdad83b-c43f-48c7-9797-fec165e953c8@438fe"
+      ],
+      "textures": [
+        "9bdad83b-c43f-48c7-9797-fec165e953c8@3dbff"
+      ],
+      "materials": [
+        "9bdad83b-c43f-48c7-9797-fec165e953c8@5227b"
+      ],
+      "scenes": [
+        "9bdad83b-c43f-48c7-9797-fec165e953c8@b5720"
+      ]
+    },
+    "normals": 3,
+    "tangents": 1,
+    "morphNormals": 1
+  }
+}

@@ -1,0 +1,16 @@
+precision highp float;
+// #include <builtin/uniforms/cc-shadow>
+#include <legacy/output>
+#include <builtin/uniforms/cc-global>
+
+in float v_dist;
+
+vec4 frag () {
+  if(v_dist < 0.0)
+    discard;
+  float r = 76.0 / 255.0;
+  float a = 150.0 / 255.0;
+  vec4 o = vec4(r, r, r, a);
+  o.rgb *= cc_mainLitColor.rgb;
+  return o;
+}

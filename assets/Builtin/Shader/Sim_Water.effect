@@ -1,0 +1,98 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: water-vs:waterVert
+      frag: water-fs:frag
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: &props
+        mainTexture:    { value: white }
+        transitionMap:  { value: grey }
+        noiseMap:       { value: grey, editor: { parent: USE_NOISE_MAP } }
+        tilingOffset:   { value: [1, 1, 0, 0] }
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }
+        reflNoiseParam: { value: [1, 1, 0, 0] }
+        uvMovePos:      { value: [0, 0] }
+}%
+
+CCProgram water-vs %{
+  #include <chunk/cartoon-vs>
+
+  out float v_tilingX;
+
+  vec4 waterVert () {
+    v_tilingX = tilingOffset.x;
+    return vert();
+  }
+}%
+
+CCProgram water-fs %{
+  precision highp float;
+  // #include <legacy/output-standard>
+  #include <legacy/fog-fs>
+  #include <chunk/cartoon-common>
+
+  in vec3 v_worldPos;
+  in vec3 v_worldNormal;
+  in float v_tilingX;
+
+  in vec2 v_uv;
+  uniform sampler2D mainTexture;
+  uniform sampler2D transitionMap;
+
+  #if USE_NOISE_MAP
+    uniform sampler2D noiseMap;
+  #endif
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 reflNoiseParam;
+    vec2 uvMovePos;
+  };
+
+  vec4 frag () {
+    vec4 o = mainColor;
+
+    float reflOffset = 0.0;
+    vec2 noiseUV;
+    #if USE_NOISE_MAP
+      float reflNoiseScale = reflNoiseParam.x;
+      vec2 reflNoiseMove = reflNoiseParam.yz;
+      float reflNoiseStrengthen = reflNoiseParam.w;
+      noiseUV = v_worldPos.xz * reflNoiseScale + cc_time.xx * reflNoiseMove;
+      reflOffset = texture(noiseMap, noiseUV).r;
+      reflOffset = reflOffset * 2.0 - 1.0;
+      reflOffset *= reflNoiseStrengthen;
+    #endif
+
+    float a = texture(transitionMap, v_uv / v_tilingX).a;
+    a = pow(a, 8.0);
+
+    o.rgb = mix(vec3(1.0, 1.0, 1.0), o.rgb, a);
+
+    vec4 refColor = texture(mainTexture, v_uv + reflOffset + cc_time.x * uvMovePos.xy);
+    o.rgb += refColor.rrr * 0.2 * cc_mainLitColor.rgb;
+
+    vec3 worldLightDir = normalize(-cc_mainLitDir.xyz);
+    o.rgb = getCartoonColor(o.rgb, v_worldNormal, worldLightDir);
+
+    float refA = refColor.r * refColor.r;
+    float a1 = a;
+    a = mix(0.8, a, step(0.001, a1));
+    refA = mix(0.0, refA, step(0.001, a1));
+    a = mix(0.4, a, step(0.04, a));
+
+    o.a = a + refA;
+
+    return o;
+  }
+}%

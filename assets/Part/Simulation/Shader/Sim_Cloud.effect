@@ -1,0 +1,100 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: cloud-vs:vert
+      frag: cloud-fs:frag
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties:
+        cloudTex:       { value: grey }
+        cloudColor:     { value: [0, 0, 0, 0], editor: { type: color } }
+        cloudTiling:    { value: [1, 1, 1, 1] }
+        cloudSpeed:     { value: [0, 0, 0, 0] }
+        unlock:         { value: [0, 0] }
+}%
+
+CCProgram cloud-vs %{
+  precision highp float;
+
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+
+  out vec2 v_uv;
+  out vec3 v_worldPos;
+
+  vec4 vert () {
+    vec4 position;
+    CCVertInput(position);
+
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+
+    vec4 worldPos = matWorld * position;
+    v_uv = a_texCoord;
+    v_worldPos = worldPos.xyz;
+
+    return cc_matProj * cc_matView * worldPos;
+  }
+}%
+
+CCProgram cloud-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+
+  in vec2 v_uv;
+  in vec3 v_worldPos;
+
+  uniform sampler2D cloudTex;
+
+  uniform Constant {
+    vec4 cloudColor;
+    vec4 cloudTiling;
+    vec4 cloudSpeed;
+    vec2 unlock;
+  };
+
+  vec4 frag () {
+    vec4 c = texture(cloudTex, v_uv * cloudTiling.xy + cc_time.x * cloudSpeed.xy);
+    vec3 c2 = texture(cloudTex, v_uv * cloudTiling.zw + cc_time.x * cloudSpeed.zw).rgb;
+    c.rgb = c.rgb * 0.7 + c2 * 0.3;
+
+    float uvDis = length(v_uv - 0.5);
+    vec3 range = 100.0 - vec3(unlock.x, unlock.y, unlock.x);
+    range *= uvDis;
+
+    float diff = dot(c.xyz, vec3(0.22, 0.707, 0.071));
+    range *= diff;
+
+    float unlock1 = unlock.x * 0.01;
+    unlock1 = clamp(unlock1, 0.0, 0.5);
+    range = range * 0.44 - unlock1;
+
+    vec3 range2 = vec3(0.6, 0.56, 0.72) - unlock1;
+    range2 = 1.0 / range2;
+    range = clamp(range * range2, 0.0, 1.0);
+
+    range2 = range * -2.0 + 3.0;
+    range = range * range;
+    range.xy = range.xy * range2.xy;
+
+    float unlock2 = -range2.z * range.z + 1.0;
+    range2 = -unlock2 * cloudColor.xyz + c.xyz;
+    unlock2 = c.x + 0.16;
+
+    range2 = range2 * (cc_mainLitColor.rgb * 0.8 + cc_ambientSky.xyz);
+    range.xy = range.xy * vec2(0.65, 0.35);
+    range.x = range.y + range.x;
+
+    return vec4(range2, range.x * unlock2);
+  }
+}%

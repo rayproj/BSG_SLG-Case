@@ -1,0 +1,122 @@
+#include <builtin/uniforms/cc-global>
+#if CC_RECEIVE_SHADOW
+  #include <legacy/shadow-map-fs>
+  in mediump vec2 v_shadowBias;
+#endif
+
+float q1 = 0.2746;
+float q2 = 0.7254;
+
+// float r1 = 0.0;
+// float r2 = 0.5098;
+float r1 = 0.4;
+float r2 = 0.6;
+float r3 = 1.0;
+
+float smoothWidth = 0.01;
+
+vec3 getRampColor(float diff) {
+#if USE_COLOR_LEVEL
+  float ramp = 0.0;
+
+  if(diff < q1) {
+    // ramp = r1;
+    ramp = r1 + smoothstep(q1 - smoothWidth, q1, diff) * (r2 - r1);
+  } else if(diff < q2) {
+    // ramp = r2;
+    ramp = r2 + smoothstep(q2 - smoothWidth, q2, diff) * (r3 - r2);
+  } else {
+    ramp = r3;
+  }
+  return vec3(ramp, ramp, ramp);
+#else
+  return vec3(diff, diff, diff);
+#endif
+}
+
+#if USE_COLOR_RAMP
+  uniform sampler2D rampMap;
+#endif
+
+#if USE_CONST_AMBIENT
+  uniform Ambient {
+    vec4 ambientGroundColor;
+    vec4 ambientSkyColor;
+  };
+#endif
+
+#if USE_CONST_MAINLIT
+  uniform MainLit {
+    vec4 mainLightColor;
+  };
+#endif
+
+vec3 getMainLitColor() {
+  vec3 mainLitColor;
+  #if USE_CONST_MAINLIT
+    return mainLightColor.xyz;
+  #else
+    return cc_mainLitColor.xyz;
+  #endif
+}
+
+vec3 getCartoonColor(vec3 albedo, vec3 worldNormal, vec3 worldLightDir) {
+  // 漫反射
+  float diff = dot(worldNormal, worldLightDir);
+  diff = (diff * 0.5 + 0.5);
+
+  vec3 sampledColor;
+
+  vec3 ambientGround, ambientSky;
+  #if USE_CONST_AMBIENT
+    ambientGround = ambientGroundColor.xyz;
+    ambientSky = ambientSkyColor.xyz;
+  #else
+    ambientGround = cc_ambientGround.xyz;
+    ambientSky = cc_ambientSky.xyz;
+  #endif
+
+  // 环境光
+  #if USE_COLOR_RAMP
+    vec4 rmapColor = texture(rampMap, vec2(diff, 0.5));
+    vec3 ambient = mix(ambientGround, ambientSky, rmapColor.a) * albedo;
+    sampledColor = rmapColor.rgb;
+  #else
+    #if USE_COLOR_LEVEL
+      vec3 ambient = mix(ambientGround, ambientSky, smoothstep(q2 - smoothWidth, q2, diff)) * albedo;
+    #else
+      vec3 ambient = mix(ambientGround, ambientSky, diff) * albedo;
+    #endif
+    sampledColor = getRampColor(diff);
+  #endif
+
+  float luminance = 0.9;
+  vec3 diffuse = getMainLitColor() * albedo * sampledColor * luminance;
+
+  return ambient + diffuse;
+}
+
+float shadowCover = 0.0;
+float shadowCtrl = 0.7;
+
+float getShadow (vec3 worldPos, vec3 worldNormal) {
+#if CC_RECEIVE_SHADOW && CC_SHADOW_TYPE == CC_SHADOW_MAP
+  vec3 position;
+  HIGHP_VALUE_FROM_STRUCT_DEFINED(position, worldPos);
+  vec3 N = normalize(worldNormal);
+  vec3 L = normalize(-cc_mainLitDir.xyz);
+  float NL = max(dot(N, L), 0.0);
+  float shadow = 1.0;
+  if(NL > shadowCover && cc_mainLitDir.w > 0.0) {
+    #if CC_DIR_LIGHT_SHADOW_TYPE == CC_DIR_LIGHT_SHADOW_CASCADED
+      shadow = CCCSMFactorBase(position, N, v_shadowBias);
+    #endif
+    #if CC_DIR_LIGHT_SHADOW_TYPE == CC_DIR_LIGHT_SHADOW_UNIFORM
+      shadow = CCShadowFactorBase(CC_SHADOW_POSITION, N, v_shadowBias);
+    #endif
+  }
+  return mix(shadowCtrl, 1.0, shadow);
+#else
+  return 1.0;
+#endif
+}

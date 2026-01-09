@@ -1,0 +1,40 @@
+{
+  "ver": "1.2.2",
+  "importer": "render-texture",
+  "imported": true,
+  "uuid": "ae950252-6634-4366-b347-5c11ffd59f6a",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {
+    "f9941": {
+      "importer": "rt-sprite-frame",
+      "uuid": "ae950252-6634-4366-b347-5c11ffd59f6a@f9941",
+      "displayName": "Minimap",
+      "id": "f9941",
+      "name": "spriteFrame",
+      "userData": {
+        "imageUuidOrDatabaseUri": "ae950252-6634-4366-b347-5c11ffd59f6a",
+        "width": 2000,
+        "height": 2000
+      },
+      "ver": "1.0.0",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "width": 2000,
+    "height": 2000,
+    "anisotropy": 0,
+    "minfilter": "nearest",
+    "magfilter": "nearest",
+    "mipfilter": "none",
+    "wrapModeS": "clamp-to-edge",
+    "wrapModeT": "clamp-to-edge",
+    "redirect": "ae950252-6634-4366-b347-5c11ffd59f6a@f9941"
+  }
+}

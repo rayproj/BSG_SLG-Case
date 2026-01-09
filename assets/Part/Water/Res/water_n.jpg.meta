@@ -1,0 +1,41 @@
+{
+  "ver": "1.0.25",
+  "importer": "image",
+  "imported": true,
+  "uuid": "84aed5f7-f740-4e1b-b691-c5a6e66c98bf",
+  "files": [
+    ".jpg",
+    ".json"
+  ],
+  "subMetas": {
+    "3c318": {
+      "importer": "texture",
+      "uuid": "84aed5f7-f740-4e1b-b691-c5a6e66c98bf@3c318",
+      "displayName": "water_n",
+      "id": "3c318",
+      "name": "normalMap",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "84aed5f7-f740-4e1b-b691-c5a6e66c98bf"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "fixAlphaTransparencyArtifacts": true,
+    "hasAlpha": false,
+    "type": "normal map",
+    "redirect": "84aed5f7-f740-4e1b-b691-c5a6e66c98bf@3c318"
+  }
+}

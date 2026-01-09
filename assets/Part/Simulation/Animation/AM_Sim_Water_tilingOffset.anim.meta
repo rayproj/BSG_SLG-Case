@@ -1,0 +1,13 @@
+{
+  "ver": "2.0.3",
+  "importer": "animation-clip",
+  "imported": true,
+  "uuid": "f8d06eef-e6cf-4907-a063-ed92d564cbd8",
+  "files": [
+    ".cconb"
+  ],
+  "subMetas": {},
+  "userData": {
+    "name": "AM_Sim_Water_tilingOffset"
+  }
+}

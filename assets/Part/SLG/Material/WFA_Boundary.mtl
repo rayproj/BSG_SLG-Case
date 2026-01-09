@@ -1,0 +1,68 @@
+{
+  "__type__": "cc.Material",
+  "_name": "",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "aaf238ac-4b49-497b-aed8-6751dac02aa1",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 1,
+  "_defines": [
+    {
+      "IS_ANIMATION": true,
+      "FIX_BORDER": true
+    }
+  ],
+  "_states": [
+    {
+      "rasterizerState": {},
+      "depthStencilState": {},
+      "blendState": {
+        "targets": [
+          {}
+        ]
+      }
+    }
+  ],
+  "_props": [
+    {
+      "mainTexture": {
+        "__uuid__": "59f4a545-04c0-4446-8e6e-e88166bb751a@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "uvMap": {
+        "__uuid__": "ecffa9ee-e871-454a-b842-45f7009bca05@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "infoParams": {
+        "__type__": "cc.Vec4",
+        "x": 1820,
+        "y": 1820,
+        "z": 16,
+        "w": 190
+      },
+      "frameParams": {
+        "__type__": "cc.Vec4",
+        "x": 0,
+        "y": 0,
+        "z": 30,
+        "w": 0.3
+      },
+      "tilingOffset": {
+        "__type__": "cc.Vec4",
+        "x": 200,
+        "y": 1,
+        "z": 0,
+        "w": 0
+      },
+      "borderAlphaFix": {
+        "__type__": "cc.Vec4",
+        "x": 1,
+        "y": 2,
+        "z": 1,
+        "w": 1
+      }
+    }
+  ]
+}

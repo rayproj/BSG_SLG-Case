@@ -1,0 +1,9 @@
+precision highp float;
+
+uniform Constant {
+  vec4 outLineColor;
+};
+
+vec4 frag () {
+  return outLineColor;
+}

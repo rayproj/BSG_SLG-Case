@@ -1,0 +1,69 @@
+{
+  "__type__": "cc.Material",
+  "_name": "",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "7d90ee3f-75a6-4408-a4fa-35496f61f4fd",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 0,
+  "_defines": [
+    {
+      "USE_NOISE_MAP": true
+    }
+  ],
+  "_states": [
+    {
+      "rasterizerState": {},
+      "depthStencilState": {},
+      "blendState": {
+        "targets": [
+          {}
+        ]
+      }
+    }
+  ],
+  "_props": [
+    {
+      "mainTexture": {
+        "__uuid__": "5e1584e0-b090-4adc-b86a-4c9bdd86a221@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "transitionMap": {
+        "__uuid__": "61cbdf39-8884-40cc-9846-186570e475e0@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "noiseMap": {
+        "__uuid__": "2871179c-9a3d-4b12-a619-1c2ef9e210a1@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "tilingOffset": {
+        "__type__": "cc.Vec4",
+        "x": 20,
+        "y": 20,
+        "z": 0,
+        "w": 0
+      },
+      "mainColor": {
+        "__type__": "cc.Color",
+        "r": 32,
+        "g": 166,
+        "b": 255,
+        "a": 255
+      },
+      "reflNoiseParam": {
+        "__type__": "cc.Vec4",
+        "x": 0.2,
+        "y": 0.13,
+        "z": 0.13,
+        "w": 0.05
+      },
+      "uvMovePos": {
+        "__type__": "cc.Vec2",
+        "x": 0.05,
+        "y": 0.05
+      }
+    }
+  ]
+}

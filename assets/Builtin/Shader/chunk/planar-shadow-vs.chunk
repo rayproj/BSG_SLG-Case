@@ -1,0 +1,53 @@
+precision highp float;
+#include <legacy/input>
+#include <builtin/uniforms/cc-global>
+#include <legacy/decode-base>
+#include <legacy/local-batch>
+// #include <builtin/uniforms/cc-shadow>
+
+out float v_dist;
+
+uniform PlanarND {
+  vec4 planarNDInfo;
+};
+
+// #if USE_INSTANCING
+//     in float ai_planarNDInfo;
+// #endif
+
+vec4 vert () {
+  vec4 position;
+  CCVertInput(position);
+
+  mat4 matWorld;
+  CCGetWorldMatrix(matWorld);
+
+  vec3 P = (matWorld * position).xyz;
+  vec3 L = cc_mainLitDir.xyz;
+
+  vec4 cc_planarNDInfo = vec4(planarNDInfo.xyz, -planarNDInfo.w);
+  // #if USE_INSTANCING
+  //   // cc_planarNDInfo.w = -ai_planarNDInfo;
+  //   float planarDis = ai_planarNDInfo;
+  //   cc_planarNDInfo.w = -(planarDis + float(planarDis == 0.0) * (planarNDInfo.w - planarDis));
+  // #endif
+
+  #if USE_NODEY2D
+    vec3 nodePos = vec3(matWorld[3]);
+    cc_planarNDInfo.w = -nodePos.y;
+  #endif
+
+  vec3 N = cc_planarNDInfo.xyz;
+  float d = cc_planarNDInfo.w + 0.001;
+  float dist = (-d - dot(P, N)) / (dot(L, N) + 0.0001);
+  vec3 shadowPos = P + L * dist;
+
+  // avoid z-fighting with shadow plane
+  // vec3 view = normalize(cc_cameraPos.xyz - shadowPos);
+  // float viewLength = length(cc_cameraPos.xyz - shadowPos);
+  // shadowPos += view * min(1.0, 0.001 * viewLength);
+
+  position = cc_matProj * cc_matView * vec4(shadowPos, 1.0);
+  v_dist = dist;
+  return position;
+}

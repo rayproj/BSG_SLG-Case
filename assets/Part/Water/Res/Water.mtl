@@ -1,0 +1,89 @@
+{
+  "__type__": "cc.Material",
+  "_name": "",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "154dc9fc-a6f7-496f-aadd-c9ffd83755ef",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 0,
+  "_defines": [
+    {}
+  ],
+  "_states": [
+    {
+      "rasterizerState": {},
+      "depthStencilState": {},
+      "blendState": {
+        "targets": [
+          {}
+        ]
+      }
+    }
+  ],
+  "_props": [
+    {
+      "depthTex": {
+        "__uuid__": "a92d044c-33d4-4bd1-ad51-5d03f3bdf5da",
+        "__expectedType__": "cc.RenderTexture"
+      },
+      "foamTex": {
+        "__uuid__": "2ab303dc-e10c-4b25-ba8a-c033ce9ff107@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "normalTex": {
+        "__uuid__": "84aed5f7-f740-4e1b-b691-c5a6e66c98bf@3c318",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "texTiling": {
+        "__type__": "cc.Vec2",
+        "x": 0.5,
+        "y": 1
+      },
+      "deepColor": {
+        "__type__": "cc.Color",
+        "r": 0,
+        "g": 195,
+        "b": 255,
+        "a": 255
+      },
+      "shallowColor": {
+        "__type__": "cc.Color",
+        "r": 40,
+        "g": 253,
+        "b": 255,
+        "a": 255
+      },
+      "waveParams": {
+        "__type__": "cc.Vec4",
+        "x": 0.04,
+        "y": -0.02,
+        "z": -0.04,
+        "w": 0.02
+      },
+      "noramlScale": 0.2,
+      "waterSpecular": 0.5,
+      "waterSmoothness": 0.998,
+      "mainLightDir": {
+        "__type__": "cc.Vec3",
+        "x": -0.32,
+        "y": 0.72,
+        "z": -0.8
+      },
+      "foamDepth": 1,
+      "foamFactor": 1.5,
+      "foamOffset": {
+        "__type__": "cc.Vec4",
+        "x": -0.03,
+        "y": 0.03,
+        "z": 1.5,
+        "w": 0.02
+      },
+      "deatilScale": 0.01,
+      "waterWave": 0.01,
+      "frequency": 30,
+      "amplitude": 0.05
+    }
+  ]
+}

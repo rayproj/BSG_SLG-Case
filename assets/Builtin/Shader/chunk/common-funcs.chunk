@@ -1,0 +1,8 @@
+float Random(vec2 seed) {
+	float random = fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
+	return random;
+}
+
+float Remap(float x, float t1, float t2, float s1, float s2) {
+  return (x - t1) / (t2 - t1) * (s2 - s1) + s1;
+}

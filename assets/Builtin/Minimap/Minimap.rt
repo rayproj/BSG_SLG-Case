@@ -1,0 +1,9 @@
+{
+  "__type__": "cc.RenderTexture",
+  "content": {
+    "base": "1,1,2,2,0,0",
+    "w": 2000,
+    "h": 2000,
+    "n": "minimap"
+  }
+}

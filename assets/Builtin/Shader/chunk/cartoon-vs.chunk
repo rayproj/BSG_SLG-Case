@@ -1,0 +1,131 @@
+precision highp float;
+
+#include <legacy/input-standard>
+#include <builtin/uniforms/cc-global>
+#include <legacy/local-batch>
+#include <legacy/fog-vs>
+#include <chunk/common-funcs>
+
+#if CC_RECEIVE_SHADOW
+  #include <legacy/shadow-map-vs>
+  out mediump vec2 v_shadowBias;
+#endif
+
+#if USE_VERTEX_COLOR
+  in lowp vec4 a_color;
+  out lowp vec4 v_color;
+#endif
+
+// #if USE_BLINK
+  #if USE_INSTANCING
+    // TODO: Only the ia of pass[0] can be counted
+    // in float ai_planarNDInfo;
+
+    in vec4 ai_blinkColor;
+    out vec4 vi_blinkColor;
+
+    in float ai_colorScale;
+    out float vi_colorScale;
+    in float ai_opacityScale;
+    out float vi_opacityScale;
+  #endif
+// #endif
+
+out vec2 v_uv;
+uniform TexCoords {
+  vec4 tilingOffset;
+};
+
+out vec3 v_worldPos;
+out vec3 v_worldNormal;
+
+#if IS_GROUND
+  out vec2 v_uvGround;
+#endif
+
+vec4 vert () {
+  StandardVertInput In;
+  CCVertInput(In);
+
+  mat4 matWorld, matWorldIT;
+  CCGetWorldMatrixFull(matWorld, matWorldIT);
+
+  v_uv = a_texCoord * tilingOffset.xy + tilingOffset.zw;
+
+  #if USE_VERTEX_COLOR
+    v_color = a_color;
+  #endif
+
+  #if IS_TROOPFLAG
+    #if USE_INSTANCING
+      float colorType = ai_blinkColor.r;
+      v_uv.x = Remap(v_uv.x, 0.5, 0.5009765625, 0.5 + colorType * 0.0009765625, 0.5009765625 + colorType * 0.0009765625);
+    #endif
+    vec3 flagWindParams = vec3(4.0, 0.2, 1.0);
+    float flagWindMask = step(v_uv.y, 0.1) * step(1.0, In.position.y);
+    In.position.x += sin(cc_time.x * flagWindParams.x + length(In.position.xy) * flagWindParams.z) * flagWindParams.y * flagWindMask;
+  #endif
+
+  vec4 worldPos = matWorld * In.position;
+
+  #if IS_GROUND
+    v_uv = a_texCoord;
+    v_uvGround = worldPos.xz * tilingOffset.xy + tilingOffset.zw;
+  #endif
+
+  #if CC_DIR_LIGHT_SHADOW_TYPE == CC_DIR_LIGHT_SHADOW_UNIFORM
+    CC_TRANSFER_SHADOW(pos);
+  #endif
+
+  #if CC_RECEIVE_SHADOW
+    v_shadowBias = CCGetShadowBias();
+  #endif
+
+  #if IS_TREE
+    float swingSpeed = 1.0;
+    vec2 swingStrength = vec2(1.0, 0.0) * 0.03;
+    float swingMask = pow(In.position.z, 1.3);
+
+    vec3 worldCenter = vec3(56.5, 0.0, -51.50);
+    // worldCenter = vec3(0.0, 0.0, 0.0);
+
+    vec3 worldNodePos = vec3(matWorld[3]);
+    float disCenter = distance(worldNodePos.xz, worldCenter.xz);
+    worldPos.xz += sin(cc_time.x * swingSpeed + disCenter * 0.1) * swingMask * swingStrength;
+
+    // 颜色
+    float sideRadius1 = 15.0;
+    float sideRadius2 = 18.0;
+    float dis = disCenter + (Random(worldNodePos.xz) * 2.0 - 1.0) * 4.0;
+    float u = v_uv.x;
+    if(dis > sideRadius2) {
+      u = Remap(u, 0.5, 0.5068359375, 0.515625, 0.5224609375);
+    } else if(dis > sideRadius1) {
+      u = Remap(u, 0.5, 0.5068359375, 0.5078125, 0.5146484375);
+    }
+    v_uv.x = u;
+  #endif
+
+  #if USE_WIND
+    vec4 windParams = vec4(3.0, 0.3, 0.05, 2.0);
+    float speed = windParams.x;
+    float strength = windParams.y;
+    float mask = In.position.z * In.position.z;
+    mask = min(mask, windParams.z);
+    worldPos.x += sin(cc_time.x * speed + length(In.position.xy) * windParams.w) * strength * mask;
+  #endif
+
+  // #if USE_BLINK
+    #if USE_INSTANCING
+      vi_blinkColor = ai_blinkColor;
+      vi_colorScale = ai_colorScale;
+      vi_opacityScale = ai_opacityScale;
+    #endif
+  // #endif
+
+  v_worldPos = worldPos.xyz;
+  v_worldNormal = normalize((matWorldIT * vec4(In.normal, 0.0)).xyz);
+
+  CC_TRANSFER_FOG(matWorld * In.position);
+  return cc_matProj * cc_matView * worldPos;
+}

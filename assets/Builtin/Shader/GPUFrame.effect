@@ -1,0 +1,214 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      properties: &props
+        mainTexture:        { value: grey }
+        uvMap:              { value: grey }
+        infoParams:         { value: [0, 0, 0, 100], editor: { tooltip: "xy图集贴图大小 zInfo贴图大小 w像素转为米的比例" } }
+        frameParams:        { value: [0, 0, 0, 1], editor: { tooltip: "x帧索引 yz动画帧索引范围 w动画速度" } }
+        tilingOffset:       { value: [1, 1, 0, 0] }
+        borderAlphaFix:    { value: [1, 1, 1, 1], editor: { tooltip: "用于修正特殊情况下边界的边线问题", parent: FIX_BORDER } }
+        mainColor:          { value: [1, 1, 1, 1], editor: { type: color } }
+        colorScale:         { value: [1, 1, 1], target: colorScaleAndCutoff.xyz }
+        alphaThreshold:     { value: 0.5, target: colorScaleAndCutoff.w, editor: { parent: USE_ALPHA_TEST } }
+  - name: transparent
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: *props
+}%
+
+CCProgram unlit-vs %{
+  precision highp float;
+  
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+  #include <legacy/fog-vs>
+
+  #if USE_VERTEX_COLOR
+    in lowp vec4 a_color;
+    out lowp vec4 v_color;
+  #endif
+
+  uniform sampler2D uvMap;
+
+  uniform InfoConstants {
+    vec4 tilingOffset;
+    vec4 infoParams;
+    vec4 frameParams;
+  };
+
+  out vec2 v_uv;
+  out vec2 v_oriUv;
+
+  out vec3 v_worldPos;
+  out vec3 v_worldNormal;
+
+  #if USE_INSTANCING
+    in vec4 ai_frameParams;
+  #endif
+
+  out vec4 v_uvRect;
+  out vec2 v_tiling;
+
+  vec4 vert () {
+    StandardVertInput In;
+    CCVertInput(In);
+
+    mat4 matWorld, matWorldIT;
+    CCGetWorldMatrixFull(matWorld, matWorldIT);
+
+    // v_uv = a_texCoord * tilingOffset.xy + tilingOffset.zw;
+    float atlasWidth = infoParams.x, atlasHeight = infoParams.y;
+    float uvMapWidth = infoParams.z;
+    float Pixel2Unit = infoParams.w;
+    float frameIndex = frameParams.x * 4.0;
+
+    #if IS_ANIMATION
+      vec2 frameLength = frameParams.yz;
+      float animStartTime = 0.0;
+      float animSpeed = frameParams.w;
+      #if USE_INSTANCING
+        frameLength = ai_frameParams.xy;
+        animStartTime = ai_frameParams.z;
+      #endif
+      float FPS = 30.0;
+      float currentAnimFrame = floor((cc_time.x - animStartTime) * FPS * animSpeed);
+      float frameCount = frameLength.y - frameLength.x;
+      float animIndex = mod(currentAnimFrame, frameCount);
+      if(animIndex >= frameCount) {
+        animIndex = frameCount - 1.0;
+      }
+      frameIndex = (frameLength.x + animIndex) * 4.0;
+    #endif
+
+    vec4 uvRect;
+    float u = mod(frameIndex, uvMapWidth) + 0.5, v = floor(frameIndex / uvMapWidth) + 0.5;
+    vec4 pos = texture(uvMap, vec2(u / uvMapWidth, v / uvMapWidth));
+    uvRect.x = dot(pos.rg * 255.0, vec2(1.0, 256.0)) / atlasWidth;
+    uvRect.y = dot(pos.ba * 255.0, vec2(1.0, 256.0)) / atlasHeight;
+
+    frameIndex++;
+
+    u = mod(frameIndex, uvMapWidth) + 0.5, v = floor(frameIndex / uvMapWidth) + 0.5;
+    pos = texture(uvMap, vec2(u / uvMapWidth, v / uvMapWidth));
+    uvRect.z = dot(pos.rg * 255.0, vec2(1.0, 256.0)) / atlasWidth;
+    uvRect.w = dot(pos.ba * 255.0, vec2(1.0, 256.0)) / atlasHeight;
+
+    // UV
+    // v_uv = mix(uvRect.xy, uvRect.zw, a_texCoord);
+    v_uvRect = uvRect;
+    v_oriUv = a_texCoord;
+    v_uv = a_texCoord * tilingOffset.xy + tilingOffset.zw;
+    v_tiling = tilingOffset.xy;
+
+    vec4 position = In.position;
+    // 宽高比
+    float tw = (uvRect.z - uvRect.x) * atlasWidth, th = (uvRect.w - uvRect.y) * atlasHeight;
+    position.x *= tw / Pixel2Unit;
+    position.y *= th / Pixel2Unit;
+
+    // 偏移
+    frameIndex++;
+    u = mod(frameIndex, uvMapWidth) + 0.5, v = floor(frameIndex / uvMapWidth) + 0.5;
+    pos = texture(uvMap, vec2(u / uvMapWidth, v / uvMapWidth));
+    float sw = dot(pos.rg * 255.0, vec2(1.0, 256.0));
+    float sh = dot(pos.ba * 255.0, vec2(1.0, 256.0));
+    frameIndex++;
+    u = mod(frameIndex, uvMapWidth) + 0.5, v = floor(frameIndex / uvMapWidth) + 0.5;
+    pos = texture(uvMap, vec2(u / uvMapWidth, v / uvMapWidth));
+    float tx = dot(pos.rg * 255.0, vec2(1.0, 256.0));
+    float ty = dot(pos.ba * 255.0, vec2(1.0, 256.0));
+    float offsetX = (tx + tw * 0.5) - (sw * 0.5), offsetY = (ty + th * 0.5) - (sh * 0.5);
+    position.x += offsetX / Pixel2Unit;
+    position.y -= offsetY / Pixel2Unit;
+
+    #if USE_VERTEX_COLOR
+      v_color = a_color;
+    #endif
+
+    vec4 worldPos = matWorld * position;
+
+    v_worldPos = worldPos.xyz;
+    v_worldNormal = normalize((matWorldIT * vec4(In.normal, 0.0)).xyz);
+
+    CC_TRANSFER_FOG(worldPos);
+    return cc_matProj * cc_matView * worldPos;
+  }
+}%
+
+CCProgram unlit-fs %{
+  precision highp float;
+
+  // #include <legacy/output-standard>
+  #include <legacy/fog-fs>
+  #include <builtin/uniforms/cc-global>
+
+  #if USE_ALPHA_TEST
+    #pragma define-meta ALPHA_TEST_CHANNEL options([a, r, g, b])
+  #endif
+
+  in vec2 v_uv;
+  in vec2 v_oriUv;
+  in vec4 v_uvRect;
+  in vec2 v_tiling;
+  uniform sampler2D mainTexture;
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 colorScaleAndCutoff;
+     vec4 borderAlphaFix;
+  };
+
+  #if USE_VERTEX_COLOR
+    in lowp vec4 v_color;
+  #endif
+
+  in vec3 v_worldPos;
+  in vec3 v_worldNormal;
+
+  vec4 frag () {
+    vec2 f_uv = fract(v_uv);
+    if(v_tiling.x > 1.0) {
+      f_uv.x = max(0.01, f_uv.x);
+      f_uv.x = min(0.99, f_uv.x);
+    }
+    vec2 uv = mix(v_uvRect.xy, v_uvRect.zw, f_uv);
+    vec4 texColor = texture(mainTexture, uv);
+    
+    texColor.rgb *= mainColor.rgb;
+    texColor.rgb *= colorScaleAndCutoff.xyz;
+
+    #if FIX_BORDER
+      // 修正本该透明的边界出现边界线问题
+      float vBorder = borderAlphaFix.x;
+      float fixAlpha = mix(borderAlphaFix.y, 1.0, smoothstep(vBorder, vBorder + 0.00001, v_oriUv.y ));
+      texColor.a *= fixAlpha;
+    #endif
+
+    #if USE_ALPHA_TEST
+      if (texColor.ALPHA_TEST_CHANNEL < colorScaleAndCutoff.w) discard;
+    #endif
+
+    #if USE_VERTEX_COLOR
+      texColor *= v_color;
+    #endif
+
+    CC_APPLY_FOG(texColor);
+    return texColor;
+  }
+}%

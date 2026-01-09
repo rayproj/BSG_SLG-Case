@@ -1,0 +1,65 @@
+{
+  "__type__": "cc.Material",
+  "_name": "",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "b1ff31b2-7d28-4f8c-8629-056a85faefa5",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 0,
+  "_defines": [
+    {}
+  ],
+  "_states": [
+    {
+      "rasterizerState": {},
+      "depthStencilState": {},
+      "blendState": {
+        "targets": [
+          {}
+        ]
+      }
+    }
+  ],
+  "_props": [
+    {
+      "terrainTexture": {
+        "__uuid__": "ff01cc16-cdcf-4a99-abb8-6556bb3d90ff@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "decalTexture": {
+        "__uuid__": "702fb365-aaf5-4cc9-8a04-dee546ebe691@6c48a",
+        "__expectedType__": "cc.Texture2D"
+      },
+      "tilingOffset": {
+        "__type__": "cc.Vec4",
+        "x": 15,
+        "y": 15,
+        "z": 0,
+        "w": 0
+      },
+      "mainColor": {
+        "__type__": "cc.Color",
+        "r": 220,
+        "g": 225,
+        "b": 247,
+        "a": 255
+      },
+      "terrainColor": {
+        "__type__": "cc.Color",
+        "r": 202,
+        "g": 209,
+        "b": 234,
+        "a": 255
+      },
+      "cameraDir": {
+        "__type__": "cc.Vec3",
+        "x": 0.5,
+        "y": -0.7071,
+        "z": -0.5
+      },
+      "decalRange": 4
+    }
+  ]
+}
