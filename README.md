@@ -9,6 +9,15 @@
 >   - Model 一些示例模型，来源网上
 >   - Part 示例集合，详情如下
 
+------
+
+**! 注意 !**
+
+CARTOON Shader中宏 **USE SPHERELIT0** 依赖自定义引擎数据，它的同步脚本是 **GlobalSphereLight**，自定义的原因是为避免引擎的默认方案 draw call * 2
+
+------
+
+
 ### CASE
 
 - #### DynamicPass
